@@ -5,31 +5,119 @@ date: "04/21/2015"
 output: pdf_document
 ---
 
-== Executive Summary ==
+# Executive Summary
 
 
-== Exploratory analyses ==
+# Problem statement (from course website)
 
+We are interested in exploring the relationship between a set of variables and miles per gallon (MPG) (outcome). They are particularly interested in the following two questions:
 
+* Is an automatic or manual transmission better for MPG
+* Quantify the MPG difference between automatic and manual transmissions
 
-== Regression models and comparisons ==
+<!--The evaluation criteria look at interpretation of the coefficients, exploratory data analysis, trying out multiple models and selection strategy, residual plot and diagnostics, uncertainty of conclusions-->
 
+# Exploratory analyses
 
-== Conclusions ==
+As expressed in the problem statement, our main variables of interest are ```mpg``` (Miles/(US) gallon) and ```am``` (0 = automatic, 1 = manual). After loading the cars data, we can do a first plotting of all the variables that we think can be related to mileage (e.g., excluding qsec, gear), which can be seen in Appendix A.1.
 
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+require(car)
+# We load the data
+data(mtcars)
+#str(mtcars)
+```
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Looking at the first column of the plots, we can see the relationship between mileage and the different other variables. We see that in most of them there appears to exist a correlation with mileage (e.g. with the ```wt``` variable).
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+Then, we could do a first approximation to the first question, by plotting the mileages of cars in the manual/automatic categories (see Appendix A.2).
+
+```{r, fig.height=3, fig.width=3, echo=F}
+mtcars$gearMode <- factor(mtcars$am, labels=c("Automatic","Manual"))
+```
+
+We observe that, in the analyzed cars, **automatic cars seem to be worse in terms of mileage (mpg) than manual ones**. However, is this directly related to the gear mode, or are there other confounding factors acting here?
+
+# Regression models 
+
+As a first approximation to the quantification of the difference between manual and automatic gears, we can do a simple linear model using only those two variables:
 
 ```{r}
-summary(cars)
+# Linear regression with only the man/auto regressor
+fitman <- lm(mpg ~ gearMode, data=mtcars)
+summary(fitman)$coef
 ```
 
-You can also embed plots, for example:
+Here we see that the significance of the gearMode coefficient is very high (p<0.0003). However, we can also see that the variance explained by this model ($R^2$) is quite low (`r summary(fitman)$r.squared`), especially compared with univariate models based on weight (`r summary(lm(mpg~wt,data=mtcars))$r.squared`) or horsepower (`r summary(lm(mpg~hp,data=mtcars))$r.squared`) or disp (`r summary(lm(mpg~disp,data=mtcars))$r.squared`) or drat (`r summary(lm(mpg~drat,data=mtcars))$r.squared`). 
+
+This (along with a plot of residuals of this model against weight, see the appendix A.3, or horsepower, in appendix A.4) tells us that these other variables may be heavily influencing our "univariate gearMode" model.
+
+Thus, we can generate a series of linear models of increasing complexity, using the most likely variables of interest first. We select the variables by looking at variables in the ```am``` row of the scatterplot matrix in appendix A.1, and seeing how certain variables are unevenly distributed between the two gearMode categories (e.g., automatic cars in the dataset tend to be much heavier than the manual ones -- given the quite logical correlation between weight and mileage, it is clear that weight can be a confounding factor in the previous model).
+
+```{r}
+# Linear regression with different regressors
+fit2 <- lm(mpg ~ gearMode+wt, data=mtcars)
+fit3 <- lm(mpg ~ gearMode+wt+hp, data=mtcars)
+fit4 <- lm(mpg ~ gearMode+wt+hp+disp, data=mtcars)
+fit5 <- lm(mpg ~ gearMode+wt+hp+disp+drat, data=mtcars)
+fitall <- lm(mpg ~ . - am, data=mtcars)
+```
+
+
+# Model comparison and selection
+
+
+```{r}
+# Add this to appendix also
+anova(fitman,fit2,fit3,fit4,fit5,fitall)
+```
+
+We select fit3 -- not only the gear mode, but also adjusting by weight and horsepower
+
+```{r}
+summary(fit3)$coef
+```
+
+Interpretation of fit3 coefficients (manuals do 2mpg more in average than automatic), ... and uncertainty?? not significant!
+
+```{r}
+#predict(fit3, mtcars, interval = "confidence")
+#predict(fit3, mtcars, interval = "prediction")
+# Check out https://class.coursera.org/regmods-013/lecture/47
+```
+
+# Diagnostics, uncertainty of conclusions
+
+???
+
+# Conclusions
+
+\newpage
+
+# Appendices
+
+## A.1 Scatterplot matrix
+
+```{r, fig.height=12, fig.width=16, message=FALSE, warning=FALSE}
+#Put this in the appendix of the report A.1
+scatterplot.matrix(~mpg+cyl+disp+hp+drat+wt+vs+am+carb,data=mtcars, main="Cars Scatterplot Matrix")
+```
+
+## A.2 Basic plot of mileages against gear modes
+
+```{r}
+plot(mpg ~ gearMode, data=mtcars)
+```
+
+
+## A.3 Residual plot against weight
 
 ```{r, echo=FALSE}
-plot(cars)
+plot(mtcars$wt, resid(fitman))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## A.4 Residual plot against horsepower
+
+```{r, echo=FALSE}
+plot(mtcars$hp, resid(fitman))
+```
