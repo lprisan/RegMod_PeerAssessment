@@ -11,10 +11,7 @@ In this report we explore the relationship between the gear mode of a car (i.e.,
 
 # Problem statement (from course website)
 
-We are interested in exploring the relationship between a set of variables and miles per gallon (MPG) (outcome). They are particularly interested in the following two questions:
-
-* Is an automatic or manual transmission better for MPG
-* Quantify the MPG difference between automatic and manual transmissions
+We are interested in exploring the relationship between a set of variables and miles per gallon (MPG) (outcome). They are particularly interested in the following two questions: 1) Is an automatic or manual transmission better for MPG; 2) Quantify the MPG difference between automatic and manual transmissions
 
 <!--The evaluation criteria look at interpretation of the coefficients, exploratory data analysis, trying out multiple models and selection strategy, residual plot and diagnostics, uncertainty of conclusions-->
 
@@ -68,16 +65,17 @@ fitall <- lm(mpg ~ . - am, data=mtcars)
 
 In order to have a model that explains a lot of the variance in the data, but is as parsimonious as possible, we try nested likelihood ratio tests for the models we have generated (see the output in Appendix A.5).
 
-We see that the model with 4 regressors is not significantly better predictor than the one with 3 regressors. Thus, we select the model that takes into account gear mode, also adjusting by weight and horsepower of the car.
+We see that the model with 4 regressors is not significantly better predictor than the one with 3 regressors. Thus, **we select the model that takes into account gear mode, also adjusting by weight and horsepower of the car**. Let's take a look at this model's (```fit3```) coefficients:
 
-```{r}
+```{r, echo=FALSE}
 summary(fit3)$coef
 ```
 
 As we can see, once corrected for weight and horsepower, we predict that **a manual gear car has a certain advantage in mileage with respect to an automatic one (of around 2.08 mpg)**. However, we can also see that the coefficient for the ```gearMode``` regressor is **not significant**, thus indicating that this prediction may not be very accurate. We can further illustrate this by generating two example cars with average weight and horsepower, and predicting their mileage in the case it was automatic or manual.
 
 ```{r}
-averages <- data.frame(row.names=c("Average Auto","Average Manual"), hp=c(mean(mtcars$hp),mean(mtcars$hp)), wt=c(mean(mtcars$wt),mean(mtcars$wt)), gearMode=as.factor(c("Automatic","Manual")))
+averages <- data.frame(row.names=c("Average Auto","Average Manual"), hp=c(mean(mtcars$hp),mean(mtcars$hp)), 
+                       wt=c(mean(mtcars$wt),mean(mtcars$wt)), gearMode=as.factor(c("Automatic","Manual")))
 predict(fit3, averages, interval = "prediction")
 ```
 
@@ -103,13 +101,13 @@ plot(mpg ~ gearMode, data=mtcars)
 
 ## A.3 Residual plot of univariate gear mode model against weight
 
-```{r, echo=FALSE}
+```{r}
 plot(mtcars$wt, resid(fitman))
 ```
 
 ## A.4 Residual plot of univariate gear mode model against horsepower
 
-```{r, echo=FALSE}
+```{r}
 plot(mtcars$hp, resid(fitman))
 ```
 
