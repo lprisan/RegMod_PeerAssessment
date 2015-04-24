@@ -7,6 +7,7 @@ output: pdf_document
 
 # Executive Summary
 
+In this report we explore the relationship between the gear mode of a car (i.e., automatic vs. manual) and their mileage. A first look at the data reveals that, on average, studied manual cars have far more mileage than automatic ones. However, once adjusted by the weight and horsepower of the car, the predicted differences in mileage are around 2mpg (and the model has enough space for error that the mileages might actually be equivalent).
 
 # Problem statement (from course website)
 
@@ -30,17 +31,16 @@ data(mtcars)
 
 Looking at the first column of the plots, we can see the relationship between mileage and the different other variables. We see that in most of them there appears to exist a correlation with mileage (e.g. with the ```wt``` variable).
 
-Then, we could do a first approximation to the first question, by plotting the mileages of cars in the manual/automatic categories (see Appendix A.2).
 
-```{r, fig.height=3, fig.width=3, echo=F}
+```{r}
 mtcars$gearMode <- factor(mtcars$am, labels=c("Automatic","Manual"))
 ```
 
-We observe that, in the analyzed cars, **automatic cars seem to be worse in terms of mileage (mpg) than manual ones**. However, is this directly related to the gear mode, or are there other confounding factors acting here?
+Then, we could do a first approximation to the first question, by plotting the mileages of cars in the manual/automatic categories (see Appendix A.2). We observe that, in the analyzed cars, **automatic cars seem to be worse in terms of mileage (mpg) than manual ones**, by around 6-7 mpg on average. However, is this directly related to the gear mode, or are there other confounding factors acting here?
 
 # Regression models 
 
-As a first approximation to the quantification of the difference between manual and automatic gears, we can do a simple linear model using only those two variables:
+As a first approximation to the quantification of the difference between manual and automatic gears, we can do a simple linear model using only those two variables (mpg and gearMode):
 
 ```{r}
 # Linear regression with only the man/auto regressor
@@ -48,11 +48,11 @@ fitman <- lm(mpg ~ gearMode, data=mtcars)
 summary(fitman)$coef
 ```
 
-Here we see that the significance of the gearMode coefficient is very high (p<0.0003). However, we can also see that the variance explained by this model ($R^2$) is quite low (`r summary(fitman)$r.squared`), especially compared with univariate models based on weight (`r summary(lm(mpg~wt,data=mtcars))$r.squared`) or horsepower (`r summary(lm(mpg~hp,data=mtcars))$r.squared`) or disp (`r summary(lm(mpg~disp,data=mtcars))$r.squared`) or drat (`r summary(lm(mpg~drat,data=mtcars))$r.squared`). 
+Here we see that the significance of the gearMode coefficient is very high (p<0.0003), and that the predicted advantage in mileage for a manual car is around 7.25 mpg. However, we can also see that the variance explained by this model ($R^2$) is quite low (`r summary(fitman)$r.squared`), especially compared with other univariate models based on weight (`r summary(lm(mpg~wt,data=mtcars))$r.squared`) or horsepower (`r summary(lm(mpg~hp,data=mtcars))$r.squared`) or disp (`r summary(lm(mpg~disp,data=mtcars))$r.squared`) or drat (`r summary(lm(mpg~drat,data=mtcars))$r.squared`). 
 
-This (along with a plot of residuals of this model against weight, see the appendix A.3, or horsepower, in appendix A.4) tells us that these other variables may be heavily influencing our "univariate gearMode" model.
+This (along with a plot of residuals of this model against weight, see the appendix A.3, or horsepower, in appendix A.4 -- which shows some clear residual patterns) tells us that these other variables may be heavily influencing our "univariate gearMode" model.
 
-Thus, we can generate a series of linear models of increasing complexity, using the most likely variables of interest first. We select the variables by looking at variables in the ```am``` row of the scatterplot matrix in appendix A.1, and seeing how certain variables are unevenly distributed between the two gearMode categories (e.g., automatic cars in the dataset tend to be much heavier than the manual ones -- given the quite logical correlation between weight and mileage, it is clear that weight can be a confounding factor in the previous model).
+Thus, we can generate a series of linear models of increasing complexity, using the most likely variables of interest first, until we have a model that uses all regressors available. <!--We select the variables by looking at variables in the ```am``` row of the scatterplot matrix in appendix A.1, and seeing how certain variables are unevenly distributed between the two gearMode categories (e.g., automatic cars in the dataset tend to be much heavier than the manual ones -- given the quite logical correlation between weight and mileage, it is clear that weight can be a confounding factor in the previous model).-->
 
 ```{r}
 # Linear regression with different regressors
@@ -66,31 +66,22 @@ fitall <- lm(mpg ~ . - am, data=mtcars)
 
 # Model comparison and selection
 
+In order to have a model that explains a lot of the variance in the data, but is as parsimonious as possible, we try nested likelihood ratio tests for the models we have generated (see the output in Appendix A.5).
 
-```{r}
-# Add this to appendix also
-anova(fitman,fit2,fit3,fit4,fit5,fitall)
-```
-
-We select fit3 -- not only the gear mode, but also adjusting by weight and horsepower
+We see that the model with 4 regressors is not significantly better predictor than the one with 3 regressors. Thus, we select the model that takes into account gear mode, also adjusting by weight and horsepower of the car.
 
 ```{r}
 summary(fit3)$coef
 ```
 
-Interpretation of fit3 coefficients (manuals do 2mpg more in average than automatic), ... and uncertainty?? not significant!
+As we can see, once corrected for weight and horsepower, we predict that **a manual gear car has a certain advantage in mileage with respect to an automatic one (of around 2.08 mpg)**. However, we can also see that the coefficient for the ```gearMode``` regressor is **not significant**, thus indicating that this prediction may not be very accurate. We can further illustrate this by generating two example cars with average weight and horsepower, and predicting their mileage in the case it was automatic or manual.
 
 ```{r}
-#predict(fit3, mtcars, interval = "confidence")
-#predict(fit3, mtcars, interval = "prediction")
-# Check out https://class.coursera.org/regmods-013/lecture/47
+averages <- data.frame(row.names=c("Average Auto","Average Manual"), hp=c(mean(mtcars$hp),mean(mtcars$hp)), wt=c(mean(mtcars$wt),mean(mtcars$wt)), gearMode=as.factor(c("Automatic","Manual")))
+predict(fit3, averages, interval = "prediction")
 ```
 
-# Diagnostics, uncertainty of conclusions
-
-???
-
-# Conclusions
+As we can see, the 95% confidence interval of these predictions of mileage overlap each other (thus, there might be a possibility that, even with the same weight and horsepower, both cars had the same mileage).
 
 \newpage
 
@@ -110,14 +101,21 @@ plot(mpg ~ gearMode, data=mtcars)
 ```
 
 
-## A.3 Residual plot against weight
+## A.3 Residual plot of univariate gear mode model against weight
 
 ```{r, echo=FALSE}
 plot(mtcars$wt, resid(fitman))
 ```
 
-## A.4 Residual plot against horsepower
+## A.4 Residual plot of univariate gear mode model against horsepower
 
 ```{r, echo=FALSE}
 plot(mtcars$hp, resid(fitman))
+```
+
+## A.5 Complete ANOVA comparison of the different multivariate linear models
+
+```{r}
+# Add this to appendix also
+anova(fitman,fit2,fit3,fit4,fit5,fitall)
 ```
